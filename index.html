@@ -1,0 +1,379 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Virtual S.I.</title>
+
+  <style>
+    :root {
+      --primary: #08265c;
+      --accent: #f5bd20;
+      --background: #f3f5fa;
+      --surface: #ffffff;
+      --text: #17233d;
+    }
+
+    [data-theme="dark"] {
+      --background: #101827;
+      --surface: #1d293b;
+      --text: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
+
+    body {
+      background: var(--background);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: fixed;
+      width: 245px;
+      height: 100vh;
+      background: var(--primary);
+      color: white;
+      padding: 28px 18px;
+    }
+
+    .brand {
+      text-align: center;
+      padding: 20px 5px 35px;
+    }
+
+    .brand .logo {
+      width: 85px;
+      height: 85px;
+      border: 4px solid var(--accent);
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      margin: auto auto 12px;
+      color: var(--accent);
+      font-size: 27px;
+      font-weight: bold;
+    }
+
+    .brand h2 {
+      font-size: 19px;
+    }
+
+    .brand span {
+      color: var(--accent);
+    }
+
+    nav a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      padding: 14px;
+      margin: 7px 0;
+      border-radius: 9px;
+    }
+
+    nav a:hover, nav a.active {
+      background: #174b9c;
+    }
+
+    main {
+      margin-left: 245px;
+      padding: 30px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 28px;
+    }
+
+    header h1 {
+      color: var(--text);
+      font-size: 25px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 9px;
+      padding: 11px 16px;
+      font-weight: bold;
+    }
+
+    .welcome {
+      background: linear-gradient(110deg, #08265c, #1455a3);
+      color: white;
+      padding: 35px;
+      border-radius: 17px;
+      margin-bottom: 25px;
+    }
+
+    .welcome h2 {
+      font-size: 29px;
+      margin-bottom: 12px;
+    }
+
+    .welcome p {
+      margin-bottom: 20px;
+    }
+
+    .gold {
+      background: var(--accent);
+      color: #10234a;
+    }
+
+    .section-title {
+      margin: 28px 0 17px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 17px;
+    }
+
+    .card {
+      background: var(--surface);
+      padding: 22px;
+      border-radius: 13px;
+      box-shadow: 0 3px 12px #0000000d;
+    }
+
+    .card h3 {
+      margin-bottom: 10px;
+    }
+
+    .card p {
+      color: var(--text);
+      opacity: .8;
+      line-height: 1.5;
+    }
+
+    .course {
+      border-top: 4px solid var(--accent);
+    }
+
+    .progress {
+      height: 8px;
+      background: #dce2ec;
+      border-radius: 10px;
+      margin-top: 15px;
+      overflow: hidden;
+    }
+
+    .progress div {
+      height: 100%;
+      background: #2364c5;
+    }
+
+    .settings {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 15px;
+    }
+
+    .color {
+      width: 35px;
+      height: 35px;
+      border-radius: 50%;
+      border: 3px solid white;
+      outline: 1px solid #aaa;
+      padding: 0;
+    }
+
+    footer {
+      text-align: center;
+      padding: 35px 10px;
+      opacity: .7;
+    }
+
+    @media(max-width: 750px) {
+      .sidebar {
+        position: relative;
+        width: 100%;
+        height: auto;
+        padding: 10px;
+      }
+
+      .brand {
+        padding: 10px;
+      }
+
+      .brand .logo {
+        width: 55px;
+        height: 55px;
+      }
+
+      nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      nav a {
+        padding: 10px;
+        font-size: 13px;
+      }
+
+      main {
+        margin-left: 0;
+        padding: 18px;
+      }
+
+      header h1 {
+        font-size: 19px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">S.I</div>
+      <h2>CAMPUS VIRTUAL</h2>
+      <span>S.I.</span>
+    </div>
+
+    <nav>
+      <a class="active" href="#inicio">⌂ Inicio</a>
+      <a href="#cursos">▣ Mis cursos</a>
+      <a href="#evaluaciones">☑ Evaluaciones</a>
+      <a href="#tareas">▤ Tareas</a>
+      <a href="#progreso">▥ Progreso</a>
+      <a href="#certificados">✪ Certificados</a>
+      <a href="#configuracion">⚙ Configuración</a>
+    </nav>
+  </aside>
+
+  <main>
+    <header>
+      <h1>Campus Virtual S.I.</h1>
+      <button onclick="toggleTheme()">☾ Cambiar tema</button>
+    </header>
+
+    <section class="welcome" id="inicio">
+      <h2>¡Bienvenido a Campus Virtual S.I.!</h2>
+      <p>Aprende, desarrolla tus habilidades y alcanza tus metas.</p>
+      <button class="gold" onclick="document.querySelector('#cursos').scrollIntoView()">
+        Explorar asignaturas →
+      </button>
+    </section>
+
+    <h2 class="section-title">Mi espacio académico</h2>
+
+    <section class="cards">
+      <div class="card">
+        <h3>📚 Mis cursos</h3>
+        <p>Accede a tus asignaturas.</p>
+      </div>
+
+      <div class="card" id="evaluaciones">
+        <h3>📝 Evaluaciones</h3>
+        <p>Comprueba tus conocimientos.</p>
+      </div>
+
+      <div class="card" id="tareas">
+        <h3>📁 Tareas</h3>
+        <p>Consulta tus actividades.</p>
+      </div>
+
+      <div class="card" id="progreso">
+        <h3>📊 Mi progreso</h3>
+        <p>Consulta tus avances académicos.</p>
+      </div>
+    </section>
+
+    <h2 class="section-title" id="cursos">Catálogo de asignaturas</h2>
+
+    <section class="cards">
+      <div class="card course">
+        <h3>💻 Programación</h3>
+        <p>Aprende los fundamentos del desarrollo.</p>
+        <div class="progress"><div style="width:60%"></div></div>
+      </div>
+
+      <div class="card course">
+        <h3>🔐 Seguridad Informática</h3>
+        <p>Conoce la protección de sistemas.</p>
+        <div class="progress"><div style="width:45%"></div></div>
+      </div>
+
+      <div class="card course">
+        <h3>🌐 Redes</h3>
+        <p>Aprende sobre comunicación digital.</p>
+        <div class="progress"><div style="width:30%"></div></div>
+      </div>
+
+      <div class="card course">
+        <h3>🗄 Bases de Datos</h3>
+        <p>Organiza y administra información.</p>
+        <div class="progress"><div style="width:20%"></div></div>
+      </div>
+    </section>
+
+    <section class="card" id="configuracion" style="margin-top:25px">
+      <h2>⚙ Personaliza tu plataforma</h2>
+      <p>Selecciona un color para cambiar la apariencia.</p>
+
+      <div class="settings">
+        <button class="color" style="background:#08265c"
+          onclick="changeColor('#08265c')"></button>
+
+        <button class="color" style="background:#542c91"
+          onclick="changeColor('#542c91')"></button>
+
+        <button class="color" style="background:#087b65"
+          onclick="changeColor('#087b65')"></button>
+
+        <button class="color" style="background:#a33d56"
+          onclick="changeColor('#a33d56')"></button>
+
+        <button class="color" style="background:#20252f"
+          onclick="changeColor('#20252f')"></button>
+      </div>
+    </section>
+
+    <footer id="certificados">
+      <p>Campus Virtual S.I. © 2026</p>
+      <p>Aprende · Avanza · Logra</p>
+    </footer>
+  </main>
+
+  <script>
+    function toggleTheme() {
+      const body = document.body;
+      const dark = body.dataset.theme === "dark";
+      body.dataset.theme = dark ? "light" : "dark";
+      localStorage.setItem("theme", body.dataset.theme);
+    }
+
+    function changeColor(color) {
+      document.documentElement.style.setProperty("--primary", color);
+      localStorage.setItem("primaryColor", color);
+    }
+
+    const savedTheme = localStorage.getItem("theme");
+    const savedColor = localStorage.getItem("primaryColor");
+
+    if (savedTheme) {
+      document.body.dataset.theme = savedTheme;
+    }
+
+    if (savedColor) {
+      changeColor(savedColor);
+    }
+  </script>
+
+</body>
+</html>
