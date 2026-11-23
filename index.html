@@ -432,7 +432,7 @@
       message.textContent = "";
 
       const { data, error } = await campusSupabase
-        .from("Cursos")
+        .from("courses")
         .select("*");
 
       if (error) {
