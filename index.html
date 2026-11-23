@@ -433,8 +433,7 @@
 
       const { data, error } = await campusSupabase
         .from("courses")
-        .select("*")
-        .order("id", { ascending: true });
+        .select("*");
 
       if (error) {
         list.innerHTML = '<div class="card"><p>No se pudieron cargar las asignaturas.</p></div>';
