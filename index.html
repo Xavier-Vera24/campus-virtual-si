@@ -196,6 +196,29 @@
       opacity: .7;
     }
 
+
+    /* Acceso y autenticación */
+    body:not(.authenticated) .sidebar { display: none; }
+    body:not(.authenticated) main { margin: 0 auto; max-width: 560px; padding: 28px 18px; }
+    body:not(.authenticated) main > :not(#authPanel) { display: none !important; }
+    #authPanel {
+      background: var(--surface); color: var(--text); padding: 28px;
+      border-radius: 16px; box-shadow: 0 5px 24px #00000012; margin-top: 7vh;
+    }
+    #authPanel h1 { color: var(--primary); margin-bottom: 10px; }
+    #authPanel p { line-height: 1.5; margin-bottom: 16px; }
+    #authPanel label { display:block; font-weight:bold; margin:12px 0 6px; }
+    #authPanel input {
+      width:100%; padding:12px; border:1px solid #cbd3e1; border-radius:8px;
+      font-size:16px; background:var(--surface); color:var(--text);
+    }
+    #authPanel .auth-actions { display:flex; gap:10px; flex-wrap:wrap; margin-top:18px; }
+    #authPanel button { background:var(--primary); color:white; }
+    #authPanel button.gold { background:var(--accent); color:#10234a; }
+    #authMessage { margin-top:14px; font-weight:bold; overflow-wrap:anywhere; }
+    #logoutButton { background:#e8edf5; color:#17233d; }
+    body.authenticated #authPanel { display:none; }
+
     @media(max-width: 750px) {
       .sidebar {
         position: relative;
@@ -257,9 +280,42 @@
   </aside>
 
   <main>
+
+    <section id="authPanel">
+      <h1>Campus Virtual S.I.</h1>
+      <p>Inicia sesión para entrar a tu espacio académico o crea una cuenta de estudiante.</p>
+      <form id="loginForm">
+        <h2>Iniciar sesión</h2>
+        <label for="loginEmail">Correo electrónico</label>
+        <input id="loginEmail" type="email" autocomplete="email" required>
+        <label for="loginPassword">Contraseña</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" minlength="6" required>
+        <div class="auth-actions">
+          <button type="submit">Entrar</button>
+        </div>
+      </form>
+      <hr style="margin:22px 0;border:0;border-top:1px solid #dce2ec">
+      <form id="signupForm">
+        <h2>Crear cuenta de estudiante</h2>
+        <label for="signupName">Nombre para mostrar (opcional)</label>
+        <input id="signupName" type="text" autocomplete="name" maxlength="80">
+        <label for="signupEmail">Correo electrónico</label>
+        <input id="signupEmail" type="email" autocomplete="email" required>
+        <label for="signupPassword">Crear contraseña (mínimo 6 caracteres)</label>
+        <input id="signupPassword" type="password" autocomplete="new-password" minlength="6" required>
+        <div class="auth-actions">
+          <button class="gold" type="submit">Crear cuenta</button>
+        </div>
+      </form>
+      <p id="authMessage" role="status" aria-live="polite"></p>
+    </section>
+
     <header>
       <h1>Campus Virtual S.I.</h1>
-      <button onclick="toggleTheme()">☾ Cambiar tema</button>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <button id="logoutButton" type="button" hidden>Cerrar sesión</button>
+        <button onclick="toggleTheme()">☾ Cambiar tema</button>
+      </div>
     </header>
 
     <section class="welcome" id="inicio">
@@ -373,6 +429,67 @@
     if (savedColor) {
       changeColor(savedColor);
     }
+  </script>
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // La URL del proyecto se obtiene del Project URL de Supabase (sin /rest/v1).
+    const SUPABASE_URL = "https://kqlelbscefrujwwommld.supabase.co";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_aOUjpfgXhPvEgyJqt56hgQ_qRg-DumJ";
+    const campusSupabase = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
+
+    const authMessage = document.getElementById("authMessage");
+    const logoutButton = document.getElementById("logoutButton");
+
+    document.getElementById("loginForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      authMessage.textContent = "Iniciando sesión...";
+      const email = document.getElementById("loginEmail").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      const { error } = await campusSupabase.auth.signInWithPassword({ email, password });
+      authMessage.textContent = error ? error.message : "Sesión iniciada.";
+    });
+
+    document.getElementById("signupForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      authMessage.textContent = "Creando tu cuenta...";
+      const fullName = document.getElementById("signupName").value.trim();
+      const email = document.getElementById("signupEmail").value.trim();
+      const password = document.getElementById("signupPassword").value;
+      const { data, error } = await campusSupabase.auth.signUp({
+        email,
+        password,
+        options: { data: { full_name: fullName } }
+      });
+      if (error) {
+        authMessage.textContent = error.message;
+      } else if (data.session) {
+        authMessage.textContent = "Cuenta creada. Ya puedes entrar al campus.";
+      } else {
+        authMessage.textContent = "Cuenta creada. Revisa tu correo para confirmar la dirección y luego inicia sesión.";
+      }
+    });
+
+    logoutButton.addEventListener("click", async () => {
+      const { error } = await campusSupabase.auth.signOut();
+      if (error) authMessage.textContent = error.message;
+    });
+
+    campusSupabase.auth.onAuthStateChange((_event, session) => {
+      document.body.classList.toggle("authenticated", Boolean(session));
+      logoutButton.hidden = !session;
+    });
+
+    campusSupabase.auth.getSession().then(({ data, error }) => {
+      if (error) authMessage.textContent = error.message;
+      const session = data?.session;
+      document.body.classList.toggle("authenticated", Boolean(session));
+      logoutButton.hidden = !session;
+    });
   </script>
 
 </body>
