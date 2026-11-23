@@ -449,8 +449,8 @@
       const icons = ["💻", "🔐", "🌐", "🗄", "📘", "🧠"];
       list.innerHTML = "";
       data.forEach((course, index) => {
-        const title = course.title || course.name || course.course_name || course.nombre || "Asignatura";
-        const description = course.description || course.descripcion || course.summary || "Contenido académico disponible próximamente.";
+        const title = course["título"] || course.title || course.name || course.course_name || course.nombre || "Asignatura";
+        const description = course["descripción"] || course.description || course.descripcion || course.summary || "Contenido académico disponible próximamente.";
         const card = document.createElement("article");
         card.className = "card course";
         const heading = document.createElement("h3");
