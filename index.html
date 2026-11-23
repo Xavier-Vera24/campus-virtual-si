@@ -352,31 +352,10 @@
 
     <h2 class="section-title" id="cursos">Catálogo de asignaturas</h2>
 
-    <section class="cards">
-      <div class="card course">
-        <h3>💻 Programación</h3>
-        <p>Aprende los fundamentos del desarrollo.</p>
-        <div class="progress"><div style="width:60%"></div></div>
-      </div>
-
-      <div class="card course">
-        <h3>🔐 Seguridad Informática</h3>
-        <p>Conoce la protección de sistemas.</p>
-        <div class="progress"><div style="width:45%"></div></div>
-      </div>
-
-      <div class="card course">
-        <h3>🌐 Redes</h3>
-        <p>Aprende sobre comunicación digital.</p>
-        <div class="progress"><div style="width:30%"></div></div>
-      </div>
-
-      <div class="card course">
-        <h3>🗄 Bases de Datos</h3>
-        <p>Organiza y administra información.</p>
-        <div class="progress"><div style="width:20%"></div></div>
-      </div>
+    <section class="cards" id="courseList" aria-live="polite">
+      <div class="card"><p>Cargando asignaturas...</p></div>
     </section>
+    <p id="courseMessage" role="status" style="margin-top:12px"></p>
 
     <section class="card" id="configuracion" style="margin-top:25px">
       <h2>⚙ Personaliza tu plataforma</h2>
@@ -445,6 +424,45 @@
     const authMessage = document.getElementById("authMessage");
     const logoutButton = document.getElementById("logoutButton");
 
+    // Carga el catálogo desde la tabla courses protegida por RLS.
+    async function loadCourses() {
+      const list = document.getElementById("courseList");
+      const message = document.getElementById("courseMessage");
+      list.innerHTML = '<div class="card"><p>Cargando asignaturas...</p></div>';
+      message.textContent = "";
+
+      const { data, error } = await campusSupabase
+        .from("courses")
+        .select("*")
+        .order("id", { ascending: true });
+
+      if (error) {
+        list.innerHTML = '<div class="card"><p>No se pudieron cargar las asignaturas.</p></div>';
+        message.textContent = "Detalle: " + error.message;
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        list.innerHTML = '<div class="card"><h3>Aún no hay asignaturas</h3><p>Cuando se agreguen cursos desde la base de datos, aparecerán aquí.</p></div>';
+        return;
+      }
+
+      const icons = ["💻", "🔐", "🌐", "🗄", "📘", "🧠"];
+      list.innerHTML = "";
+      data.forEach((course, index) => {
+        const title = course.title || course.name || course.course_name || course.nombre || "Asignatura";
+        const description = course.description || course.descripcion || course.summary || "Contenido académico disponible próximamente.";
+        const card = document.createElement("article");
+        card.className = "card course";
+        const heading = document.createElement("h3");
+        heading.textContent = icons[index % icons.length] + " " + title;
+        const paragraph = document.createElement("p");
+        paragraph.textContent = description;
+        card.append(heading, paragraph);
+        list.appendChild(card);
+      });
+    }
+
     document.getElementById("loginForm").addEventListener("submit", async (event) => {
       event.preventDefault();
       authMessage.textContent = "Iniciando sesión...";
@@ -482,6 +500,7 @@
     campusSupabase.auth.onAuthStateChange((_event, session) => {
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
+      if (session) loadCourses();
     });
 
     campusSupabase.auth.getSession().then(({ data, error }) => {
@@ -489,6 +508,7 @@
       const session = data?.session;
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
+      if (session) loadCourses();
     });
   </script>
 
