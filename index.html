@@ -201,7 +201,7 @@
     .course-open { margin-top:16px; background:var(--primary); color:white; }
     #modulePanel { margin-top:24px; }
     .module-item { border-left:4px solid var(--accent); margin-top:14px; }
-    .module-item p { white-space:pre-wrap; margin-top:10px; }
+    .module-item p { white-space:pre-wrap; margin-top:10px; }\n    .module-open { margin-top:14px; background:var(--primary); color:white; }\n    #lessonView { margin-top:20px; }
     .module-top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
 
     /* Acceso y autenticación */
@@ -362,7 +362,24 @@
     <section class="cards" id="courseList" aria-live="polite">
       <div class="card"><p>Cargando asignaturas...</p></div>
     </section>
-    <p id="courseMessage" role="status" style="margin-top:12px"></p>\n\n    <section class="card" id="modulePanel" hidden aria-live="polite">\n      <div class="module-top"><h2 id="moduleCourseTitle">Módulos</h2><button type="button" id="backToCourses">← Volver a asignaturas</button></div>\n      <div id="moduleList"></div>\n      <p id="moduleMessage" role="status" style="margin-top:12px"></p>\n    </section>
+    <p id="courseMessage" role="status" style="margin-top:12px"></p>
+
+    <section class="card" id="modulePanel" hidden aria-live="polite">
+      <div class="module-top"><h2 id="moduleCourseTitle">Módulos</h2><button type="button" id="backToCourses">← Volver a asignaturas</button></div>
+      <div id="moduleList"></div>
+      <section id="lessonView" hidden>
+        <button type="button" id="backToModules" style="margin:18px 0">← Volver a módulos</button>
+        <h2 id="lessonTitle"></h2>
+        <p id="lessonContent" style="white-space:pre-wrap;line-height:1.7;margin:16px 0"></p>
+        <div class="card" style="margin:18px 0;background:var(--background)">
+          <h3>Actividad de aprendizaje</h3>
+          <p id="lessonActivity">Lee el contenido y escribe en tu cuaderno tres ideas importantes que hayas aprendido.</p>
+        </div>
+        <button type="button" class="gold" id="completeLesson">Marcar clase como completada</button>
+        <p id="lessonStatus" role="status" style="margin-top:12px"></p>
+      </section>
+      <p id="moduleMessage" role="status" style="margin-top:12px"></p>
+    </section>
 
     <section class="card" id="configuracion" style="margin-top:25px">
       <h2>⚙ Personaliza tu plataforma</h2>
@@ -512,6 +529,31 @@
         list.appendChild(item);
       });
     }
+
+    function openModuleLesson(module) {
+      const lessonView = document.getElementById("lessonView");
+      document.getElementById("moduleList").hidden = true;
+      document.getElementById("moduleMessage").hidden = true;
+      lessonView.hidden = false;
+      document.getElementById("lessonTitle").textContent = module.title || "Clase";
+      document.getElementById("lessonContent").textContent = module.content || "Contenido próximamente.";
+      document.getElementById("lessonStatus").textContent = "";
+      document.getElementById("completeLesson").dataset.moduleId = module.id;
+      lessonView.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    document.getElementById("backToModules").addEventListener("click", () => {
+      document.getElementById("lessonView").hidden = true;
+      document.getElementById("moduleList").hidden = false;
+      document.getElementById("moduleMessage").hidden = false;
+    });
+
+    document.getElementById("completeLesson").addEventListener("click", () => {
+      const moduleId = document.getElementById("completeLesson").dataset.moduleId;
+      const key = "campus_completed_" + moduleId;
+      localStorage.setItem(key, "true");
+      document.getElementById("lessonStatus").textContent = "¡Muy bien! Esta clase quedó marcada como completada en este navegador.";
+    });
 
     document.getElementById("backToCourses").addEventListener("click", () => {
       document.getElementById("modulePanel").hidden = true;
