@@ -517,12 +517,32 @@
         return;
       }
 
-      message.textContent = "";
+      const moduleIds = data.map(module => module.id);
+      const { data: completedRows, error: completedError } = await campusSupabase
+        .from("lesson_progress")
+        .select("module_id")
+        .in("module_id", moduleIds);
+      if (completedError) {
+        message.textContent = "No se pudo consultar el progreso: " + completedError.message;
+        return;
+      }
+      const completedIds = new Set((completedRows || []).map(row => row.module_id));
+      const completedCount = completedIds.size;
+      const summary = document.createElement("p");
+      summary.style.margin = "12px 0";
+      summary.style.fontWeight = "bold";
+      summary.textContent = "Progreso de esta asignatura: " + completedCount + " de " + data.length + " clases completadas.";
+      list.appendChild(summary);
       data.forEach((module, index) => {
         const item = document.createElement("article");
         item.className = "card module-item";
+        item.dataset.moduleId = module.id;
         const heading = document.createElement("h3");
         heading.textContent = (index + 1) + ". " + (module.title || "Módulo");
+        const status = document.createElement("p");
+        status.className = "module-progress-status";
+        status.style.fontWeight = "bold";
+        status.textContent = completedIds.has(module.id) ? "✓ Clase completada" : "Pendiente";
         const content = document.createElement("p");
         content.textContent = module.content || "Contenido próximamente.";
         const openLesson = document.createElement("button");
@@ -530,7 +550,7 @@
         openLesson.className = "module-open";
         openLesson.textContent = "Abrir clase →";
         openLesson.addEventListener("click", () => openModuleLesson(module));
-        item.append(heading, content, openLesson);
+        item.append(heading, status, content, openLesson);
         list.appendChild(item);
       });
     }
@@ -612,6 +632,18 @@
       }
       document.getElementById("lessonStatus").textContent = "¡Muy bien! Tu clase quedó completada y guardada en tu cuenta.";
       button.textContent = "Clase completada";
+      const moduleCard = document.querySelector('.module-item[data-module-id="' + moduleId + '"]');
+      if (moduleCard) {
+        const status = moduleCard.querySelector(".module-progress-status");
+        if (status) status.textContent = "✓ Clase completada";
+      }
+      const summary = document.querySelector("#moduleList > p");
+      if (summary) {
+        const done = Array.from(document.querySelectorAll(".module-progress-status"))
+          .filter(node => node.textContent.includes("completada")).length;
+        const total = document.querySelectorAll(".module-progress-status").length;
+        summary.textContent = "Progreso de esta asignatura: " + done + " de " + total + " clases completadas.";
+      }
       button.disabled = false;
     });
 
