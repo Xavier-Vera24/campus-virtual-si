@@ -686,7 +686,8 @@
       if (!userData?.user) { panel.hidden = true; return; }
       const { data: profile, error } = await campusSupabase
         .from("profiles").select("role").eq("id", userData.user.id).maybeSingle();
-      if (error || !["teacher", "profesor"].includes(String(profile?.role || "").toLowerCase())) { panel.hidden = true; return; }
+      if (error) { panel.hidden = true; document.getElementById("teacherMessage").textContent = "Error al consultar el perfil docente: " + error.message; return; }
+      if (!["teacher", "profesor"].includes(String(profile?.role || "").trim().toLowerCase())) { panel.hidden = true; document.getElementById("teacherMessage").textContent = "Sesión: " + (userData.user.email || "activa") + " | Rol detectado: " + (profile?.role || "sin perfil"); return; }
       panel.hidden = false;
       const { data: courses, error: courseError } = await campusSupabase
         .from("courses").select("id, title").order("title");
@@ -976,7 +977,7 @@
     campusSupabase.auth.onAuthStateChange((_event, session) => {
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) { loadCourses(); loadEvaluations(); loadTeacherPanel(); }
+      if (session) { loadCourses(); loadEvaluations(); setTimeout(() => loadTeacherPanel(), 0); }
     });
 
     campusSupabase.auth.getSession().then(({ data, error }) => {
@@ -984,7 +985,7 @@
       const session = data?.session;
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) { loadCourses(); loadEvaluations(); loadTeacherPanel(); }
+      if (session) { loadCourses(); loadEvaluations(); setTimeout(() => loadTeacherPanel(), 0); }
     });
   </script>
 
