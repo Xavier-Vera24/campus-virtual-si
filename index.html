@@ -525,7 +525,12 @@
         heading.textContent = (index + 1) + ". " + (module.title || "Módulo");
         const content = document.createElement("p");
         content.textContent = module.content || "Contenido próximamente.";
-        item.append(heading, content);
+        const openLesson = document.createElement("button");
+        openLesson.type = "button";
+        openLesson.className = "module-open";
+        openLesson.textContent = "Abrir clase →";
+        openLesson.addEventListener("click", () => openModuleLesson(module));
+        item.append(heading, content, openLesson);
         list.appendChild(item);
       });
     }
