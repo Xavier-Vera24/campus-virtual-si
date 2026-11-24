@@ -364,6 +364,18 @@
     </section>
     <p id="courseMessage" role="status" style="margin-top:12px"></p>
 
+    <section class="card" id="evaluationPanel" style="margin-top:24px">
+      <div class="module-top"><h2>📝 Evaluaciones disponibles</h2><button type="button" id="refreshEvaluations">Actualizar</button></div>
+      <div id="evaluationList"><p style="margin-top:12px">Cargando evaluaciones...</p></div>
+      <section id="evaluationTake" hidden style="margin-top:20px">
+        <button type="button" id="backToEvaluations">← Volver a evaluaciones</button>
+        <h3 id="evaluationTitle" style="margin:16px 0"></h3>
+        <p id="evaluationDescription"></p>
+        <form id="evaluationForm"></form>
+        <p id="evaluationResult" role="status" style="margin-top:16px;font-weight:bold"></p>
+      </section>
+    </section>
+
     <section class="card" id="modulePanel" hidden aria-live="polite">
       <div class="module-top"><h2 id="moduleCourseTitle">Módulos</h2><button type="button" id="backToCourses">← Volver a asignaturas</button></div>
       <div id="moduleList"></div>
@@ -490,6 +502,126 @@
         list.appendChild(card);
       });
     }
+
+    // Evaluaciones: las respuestas correctas se califican de forma segura en Supabase.
+    async function loadEvaluations() {
+      const list = document.getElementById("evaluationList");
+      list.textContent = "Cargando evaluaciones...";
+      const { data, error } = await campusSupabase
+        .from("evaluations")
+        .select("id, title, description")
+        .eq("is_published", true)
+        .order("created_at", { ascending: false });
+      if (error) {
+        list.textContent = "No se pudieron cargar las evaluaciones: " + error.message;
+        return;
+      }
+      list.replaceChildren();
+      if (!data || data.length === 0) {
+        list.textContent = "Todavía no hay evaluaciones publicadas.";
+        return;
+      }
+      data.forEach(evaluation => {
+        const card = document.createElement("article");
+        card.className = "card module-item";
+        const title = document.createElement("h3");
+        title.textContent = evaluation.title;
+        const description = document.createElement("p");
+        description.textContent = evaluation.description || "Evaluación de conocimientos.";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "module-open";
+        button.textContent = "Realizar evaluación →";
+        button.addEventListener("click", () => openEvaluation(evaluation));
+        card.append(title, description, button);
+        list.appendChild(card);
+      });
+    }
+
+    async function openEvaluation(evaluation) {
+      const take = document.getElementById("evaluationTake");
+      const form = document.getElementById("evaluationForm");
+      const result = document.getElementById("evaluationResult");
+      document.getElementById("evaluationList").hidden = true;
+      take.hidden = false;
+      form.replaceChildren();
+      result.textContent = "Cargando preguntas...";
+      document.getElementById("evaluationTitle").textContent = evaluation.title;
+      document.getElementById("evaluationDescription").textContent = evaluation.description || "";
+      const { data, error } = await campusSupabase
+        .from("evaluation_questions")
+        .select("id, prompt, options, position")
+        .eq("evaluation_id", evaluation.id)
+        .order("position", { ascending: true });
+      if (error || !data || data.length === 0) {
+        result.textContent = error ? "No se pudieron cargar las preguntas: " + error.message : "Esta evaluación todavía no tiene preguntas.";
+        return;
+      }
+      result.textContent = "";
+      data.forEach((question, index) => {
+        const fieldset = document.createElement("fieldset");
+        fieldset.className = "card";
+        fieldset.style.marginTop = "14px";
+        fieldset.style.border = "1px solid #dce2ec";
+        const legend = document.createElement("legend");
+        legend.textContent = (index + 1) + ". " + question.prompt;
+        legend.style.fontWeight = "bold";
+        legend.style.padding = "0 6px";
+        fieldset.appendChild(legend);
+        (Array.isArray(question.options) ? question.options : []).forEach((option, optionIndex) => {
+          const label = document.createElement("label");
+          label.style.display = "block";
+          label.style.margin = "12px 0";
+          const radio = document.createElement("input");
+          radio.type = "radio";
+          radio.name = question.id;
+          radio.value = String(optionIndex);
+          radio.required = true;
+          radio.style.marginRight = "9px";
+          label.append(radio, document.createTextNode(String(option)));
+          fieldset.appendChild(label);
+        });
+        form.appendChild(fieldset);
+      });
+      const submit = document.createElement("button");
+      submit.type = "submit";
+      submit.className = "gold";
+      submit.style.marginTop = "18px";
+      submit.textContent = "Enviar respuestas y ver nota";
+      form.appendChild(submit);
+      form.dataset.evaluationId = evaluation.id;
+    }
+
+    document.getElementById("evaluationForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const answers = {};
+      form.querySelectorAll('input[type="radio"]:checked').forEach(input => {
+        answers[input.name] = Number(input.value);
+      });
+      const submit = form.querySelector('button[type="submit"]');
+      submit.disabled = true;
+      document.getElementById("evaluationResult").textContent = "Calificando...";
+      const { data, error } = await campusSupabase.rpc("submit_evaluation", {
+        p_evaluation_id: form.dataset.evaluationId,
+        p_answers: answers
+      });
+      if (error) {
+        document.getElementById("evaluationResult").textContent = "No se pudo calificar: " + error.message;
+        submit.disabled = false;
+        return;
+      }
+      document.getElementById("evaluationResult").textContent =
+        "Resultado: " + data.correct + " de " + data.total + " respuestas correctas. Nota: " + data.score + "/10. Tu intento quedó guardado.";
+      submit.textContent = "Evaluación enviada";
+    });
+
+    document.getElementById("backToEvaluations").addEventListener("click", () => {
+      document.getElementById("evaluationTake").hidden = true;
+      document.getElementById("evaluationList").hidden = false;
+      document.getElementById("evaluationResult").textContent = "";
+    });
+    document.getElementById("refreshEvaluations").addEventListener("click", loadEvaluations);
 
     // Muestra los módulos de la asignatura seleccionada.
     async function loadModules(courseId, courseTitle) {
@@ -689,7 +821,7 @@
     campusSupabase.auth.onAuthStateChange((_event, session) => {
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) loadCourses();
+      if (session) { loadCourses(); loadEvaluations(); }
     });
 
     campusSupabase.auth.getSession().then(({ data, error }) => {
@@ -697,7 +829,7 @@
       const session = data?.session;
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) loadCourses();
+      if (session) { loadCourses(); loadEvaluations(); }
     });
   </script>
 
