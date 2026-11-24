@@ -686,7 +686,7 @@
       if (!userData?.user) { panel.hidden = true; return; }
       const { data: profile, error } = await campusSupabase
         .from("profiles").select("role").eq("id", userData.user.id).maybeSingle();
-      if (error || profile?.role !== "teacher") { panel.hidden = true; return; }
+      if (error || !["teacher", "profesor"].includes(String(profile?.role || "").toLowerCase())) { panel.hidden = true; return; }
       panel.hidden = false;
       const { data: courses, error: courseError } = await campusSupabase
         .from("courses").select("id, title").order("title");
