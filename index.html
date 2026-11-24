@@ -197,6 +197,13 @@
     }
 
 
+
+    .course-open { margin-top:16px; background:var(--primary); color:white; }
+    #modulePanel { margin-top:24px; }
+    .module-item { border-left:4px solid var(--accent); margin-top:14px; }
+    .module-item p { white-space:pre-wrap; margin-top:10px; }
+    .module-top { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+
     /* Acceso y autenticación */
     body:not(.authenticated) .sidebar { display: none; }
     body:not(.authenticated) main { margin: 0 auto; max-width: 560px; padding: 28px 18px; }
@@ -355,7 +362,7 @@
     <section class="cards" id="courseList" aria-live="polite">
       <div class="card"><p>Cargando asignaturas...</p></div>
     </section>
-    <p id="courseMessage" role="status" style="margin-top:12px"></p>
+    <p id="courseMessage" role="status" style="margin-top:12px"></p>\n\n    <section class="card" id="modulePanel" hidden aria-live="polite">\n      <div class="module-top"><h2 id="moduleCourseTitle">Módulos</h2><button type="button" id="backToCourses">← Volver a asignaturas</button></div>\n      <div id="moduleList"></div>\n      <p id="moduleMessage" role="status" style="margin-top:12px"></p>\n    </section>
 
     <section class="card" id="configuracion" style="margin-top:25px">
       <h2>⚙ Personaliza tu plataforma</h2>
@@ -457,10 +464,59 @@
         heading.textContent = icons[index % icons.length] + " " + title;
         const paragraph = document.createElement("p");
         paragraph.textContent = description;
-        card.append(heading, paragraph);
+        const openButton = document.createElement("button");
+        openButton.type = "button";
+        openButton.className = "course-open";
+        openButton.textContent = "Ver módulos →";
+        openButton.addEventListener("click", () => loadModules(course.id, title));
+        card.append(heading, paragraph, openButton);
         list.appendChild(card);
       });
     }
+
+    // Muestra los módulos de la asignatura seleccionada.
+    async function loadModules(courseId, courseTitle) {
+      const panel = document.getElementById("modulePanel");
+      const list = document.getElementById("moduleList");
+      const message = document.getElementById("moduleMessage");
+      document.getElementById("moduleCourseTitle").textContent = courseTitle;
+      panel.hidden = false;
+      list.replaceChildren();
+      message.textContent = "Cargando módulos...";
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      const { data, error } = await campusSupabase
+        .from("modules")
+        .select("id, title, content, position")
+        .eq("course_id", courseId)
+        .order("position", { ascending: true });
+
+      if (error) {
+        message.textContent = "No se pudieron cargar los módulos: " + error.message;
+        return;
+      }
+      if (!data || data.length === 0) {
+        message.textContent = "Esta asignatura todavía no tiene módulos.";
+        return;
+      }
+
+      message.textContent = "";
+      data.forEach((module, index) => {
+        const item = document.createElement("article");
+        item.className = "card module-item";
+        const heading = document.createElement("h3");
+        heading.textContent = (index + 1) + ". " + (module.title || "Módulo");
+        const content = document.createElement("p");
+        content.textContent = module.content || "Contenido próximamente.";
+        item.append(heading, content);
+        list.appendChild(item);
+      });
+    }
+
+    document.getElementById("backToCourses").addEventListener("click", () => {
+      document.getElementById("modulePanel").hidden = true;
+      document.getElementById("cursos").scrollIntoView({ behavior: "smooth" });
+    });
 
     document.getElementById("loginForm").addEventListener("submit", async (event) => {
       event.preventDefault();
