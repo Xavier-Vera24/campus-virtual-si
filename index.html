@@ -376,6 +376,61 @@
       </section>
     </section>
 
+
+    <section class="card" id="teacherPanel" hidden style="margin-top:24px">
+      <h2>👨‍🏫 Panel del profesor</h2>
+      <p style="margin:8px 0 18px">Administra asignaturas, módulos y evaluaciones.</p>
+      <div class="card" style="margin:14px 0">
+        <h3>Crear asignatura</h3>
+        <form id="teacherCourseForm">
+          <label>Nombre de la asignatura</label>
+          <input name="title" required maxlength="100" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px">
+          <label>Descripción</label>
+          <textarea name="description" rows="2" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px"></textarea>
+          <button class="gold" type="submit">Crear asignatura</button>
+        </form>
+      </div>
+      <div class="card" style="margin:14px 0">
+        <h3>Crear módulo</h3>
+        <form id="teacherModuleForm">
+          <label>Asignatura</label>
+          <select name="course_id" id="teacherModuleCourse" required style="width:100%;padding:11px;margin:8px 0"></select>
+          <label>Título del módulo</label>
+          <input name="title" required maxlength="120" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px">
+          <label>Contenido de la clase</label>
+          <textarea name="content" rows="4" required style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px"></textarea>
+          <button class="gold" type="submit">Crear módulo</button>
+        </form>
+      </div>
+      <div class="card" style="margin:14px 0">
+        <h3>Crear evaluación con una pregunta</h3>
+        <form id="teacherEvaluationForm">
+          <label>Asignatura</label>
+          <select name="course_id" id="teacherEvaluationCourse" required style="width:100%;padding:11px;margin:8px 0"></select>
+          <label>Título de la evaluación</label>
+          <input name="title" required maxlength="120" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px">
+          <label>Descripción</label>
+          <input name="description" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px">
+          <label>Pregunta</label>
+          <input name="prompt" required style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px">
+          <label>Opción 1</label><input name="option0" required style="width:100%;padding:9px;margin:5px 0">
+          <label>Opción 2</label><input name="option1" required style="width:100%;padding:9px;margin:5px 0">
+          <label>Opción 3</label><input name="option2" required style="width:100%;padding:9px;margin:5px 0">
+          <label>Opción 4</label><input name="option3" required style="width:100%;padding:9px;margin:5px 0">
+          <label>Respuesta correcta</label>
+          <select name="correct" required style="width:100%;padding:11px;margin:8px 0">
+            <option value="0">Opción 1</option><option value="1">Opción 2</option><option value="2">Opción 3</option><option value="3">Opción 4</option>
+          </select>
+          <button class="gold" type="submit">Publicar evaluación</button>
+        </form>
+      </div>
+      <div class="card" style="margin:14px 0">
+        <div class="module-top"><h3>Resultados de evaluaciones</h3><button type="button" id="refreshTeacherResults">Actualizar</button></div>
+        <div id="teacherResults" style="margin-top:12px">Carga los resultados para consultarlos.</div>
+      </div>
+      <p id="teacherMessage" role="status" style="margin-top:12px;font-weight:bold"></p>
+    </section>
+
     <section class="card" id="modulePanel" hidden aria-live="polite">
       <div class="module-top"><h2 id="moduleCourseTitle">Módulos</h2><button type="button" id="backToCourses">← Volver a asignaturas</button></div>
       <div id="moduleList"></div>
@@ -623,6 +678,106 @@
     });
     document.getElementById("refreshEvaluations").addEventListener("click", loadEvaluations);
 
+
+    // Panel docente: solo se muestra cuando el perfil tiene role = teacher.
+    async function loadTeacherPanel() {
+      const panel = document.getElementById("teacherPanel");
+      const { data: userData } = await campusSupabase.auth.getUser();
+      if (!userData?.user) { panel.hidden = true; return; }
+      const { data: profile, error } = await campusSupabase
+        .from("profiles").select("role").eq("id", userData.user.id).maybeSingle();
+      if (error || profile?.role !== "teacher") { panel.hidden = true; return; }
+      panel.hidden = false;
+      const { data: courses, error: courseError } = await campusSupabase
+        .from("courses").select("id, title").order("title");
+      if (courseError) {
+        document.getElementById("teacherMessage").textContent = "No se pudieron cargar las asignaturas: " + courseError.message;
+        return;
+      }
+      ["teacherModuleCourse", "teacherEvaluationCourse"].forEach(id => {
+        const select = document.getElementById(id);
+        select.replaceChildren();
+        (courses || []).forEach(course => {
+          const option = document.createElement("option");
+          option.value = course.id; option.textContent = course.title;
+          select.appendChild(option);
+        });
+      });
+      loadTeacherResults();
+    }
+
+    document.getElementById("teacherCourseForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const values = Object.fromEntries(new FormData(form));
+      const { error } = await campusSupabase.from("courses").insert({
+        title: values.title.trim(), description: values.description.trim()
+      });
+      document.getElementById("teacherMessage").textContent = error ? "No se pudo crear: " + error.message : "Asignatura creada correctamente.";
+      if (!error) { form.reset(); await loadCourses(); await loadTeacherPanel(); }
+    });
+
+    document.getElementById("teacherModuleForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const values = Object.fromEntries(new FormData(event.currentTarget));
+      const { data: existing } = await campusSupabase.from("modules")
+        .select("position").eq("course_id", values.course_id).order("position", {ascending:false}).limit(1);
+      const position = existing?.length ? Number(existing[0].position || 0) + 1 : 1;
+      const { error } = await campusSupabase.from("modules").insert({
+        course_id: values.course_id, title: values.title.trim(),
+        content: values.content.trim(), position
+      });
+      document.getElementById("teacherMessage").textContent = error ? "No se pudo crear el módulo: " + error.message : "Módulo creado correctamente.";
+      if (!error) event.currentTarget.reset();
+    });
+
+    document.getElementById("teacherEvaluationForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const v = Object.fromEntries(new FormData(form));
+      const { data: evaluation, error: evalError } = await campusSupabase.from("evaluations")
+        .insert({ course_id: v.course_id, title: v.title.trim(), description: v.description.trim(), is_published: true })
+        .select("id").single();
+      if (evalError) {
+        document.getElementById("teacherMessage").textContent = "No se pudo crear la evaluación: " + evalError.message;
+        return;
+      }
+      const { data: question, error: questionError } = await campusSupabase.from("evaluation_questions")
+        .insert({ evaluation_id: evaluation.id, prompt: v.prompt.trim(),
+          options: [v.option0, v.option1, v.option2, v.option3], position: 1 })
+        .select("id").single();
+      if (questionError) {
+        document.getElementById("teacherMessage").textContent = "La evaluación se creó, pero falló la pregunta: " + questionError.message;
+        return;
+      }
+      const { error: keyError } = await campusSupabase.from("evaluation_answer_keys")
+        .insert({ question_id: question.id, correct_option: Number(v.correct) });
+      document.getElementById("teacherMessage").textContent = keyError
+        ? "Pregunta creada, pero no se pudo guardar la respuesta correcta: " + keyError.message
+        : "Evaluación publicada correctamente.";
+      if (!keyError) { form.reset(); await loadEvaluations(); }
+    });
+
+    async function loadTeacherResults() {
+      const target = document.getElementById("teacherResults");
+      target.textContent = "Consultando resultados...";
+      const { data, error } = await campusSupabase.from("evaluation_attempts")
+        .select("student_id, evaluation_id, correct_count, total_questions, score, submitted_at")
+        .order("submitted_at", { ascending: false }).limit(100);
+      if (error) { target.textContent = "No se pudieron cargar los resultados: " + error.message; return; }
+      if (!data?.length) { target.textContent = "Todavía no hay intentos registrados."; return; }
+      target.replaceChildren();
+      data.forEach(row => {
+        const p = document.createElement("p");
+        p.style.padding = "9px 0";
+        p.style.borderBottom = "1px solid #dce2ec";
+        p.textContent = "Estudiante: " + row.student_id.slice(0,8) + "… | Evaluación: " + row.evaluation_id.slice(0,8) + "… | " + row.correct_count + "/" + row.total_questions + " | Nota: " + row.score + "/10";
+        target.appendChild(p);
+      });
+    }
+    document.getElementById("refreshTeacherResults").addEventListener("click", loadTeacherResults);
+
+
     // Muestra los módulos de la asignatura seleccionada.
     async function loadModules(courseId, courseTitle) {
       const panel = document.getElementById("modulePanel");
@@ -821,7 +976,7 @@
     campusSupabase.auth.onAuthStateChange((_event, session) => {
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) { loadCourses(); loadEvaluations(); }
+      if (session) { loadCourses(); loadEvaluations(); loadTeacherPanel(); }
     });
 
     campusSupabase.auth.getSession().then(({ data, error }) => {
