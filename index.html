@@ -540,8 +540,24 @@
       document.getElementById("moduleList").hidden = true;
       document.getElementById("moduleMessage").hidden = true;
       lessonView.hidden = false;
+      const lessonDetails = {
+        "Introducción a la programación": {
+          content: "La programación consiste en dar instrucciones a una computadora para que realice tareas. Estas instrucciones se escriben usando un lenguaje de programación, como Python, JavaScript o Java.\n\nUn algoritmo es una secuencia ordenada de pasos para resolver un problema. Antes de programar, conviene comprender el problema, identificar los datos de entrada, definir el proceso y establecer el resultado esperado.\n\nEjemplo de algoritmo para calcular el promedio de dos notas:\n1. Leer la primera nota.\n2. Leer la segunda nota.\n3. Sumar las dos notas.\n4. Dividir el resultado para dos.\n5. Mostrar el promedio.\n\nUn programa transforma ese algoritmo en instrucciones que la computadora puede ejecutar.",
+          activity: "Escribe un algoritmo de cinco pasos para calcular el área de un rectángulo. Identifica cuáles son los datos de entrada y cuál es el resultado."
+        },
+        "Variables y tipos de datos": {
+          content: "Una variable es un espacio identificado por un nombre donde un programa guarda un dato que puede utilizar o modificar durante su ejecución. Por ejemplo, edad puede almacenar el número 16 y nombre puede guardar el texto Ana.\n\nLos tipos de datos indican qué clase de valor se almacena. Los más comunes son:\n• Entero: números sin parte decimal, como 12.\n• Decimal: números con parte decimal, como 8.5.\n• Cadena de texto: palabras o frases, como Hola.\n• Booleano: valores verdadero o falso.\n\nEjemplo en pseudocódigo:\nnombre ← \"Ana\"\nedad ← 16\naprobado ← verdadero\n\nUna constante es un valor que se establece y no debería cambiar durante el programa. Elegir nombres claros para variables facilita comprender y corregir el código.",
+          activity: "Propón tres variables para registrar los datos de un estudiante. Escribe el nombre de cada variable, su valor de ejemplo y el tipo de dato correspondiente."
+        },
+        "Condicionales y ciclos": {
+          content: "Las estructuras de control permiten cambiar el orden en que se ejecutan las instrucciones. Las condicionales toman decisiones y los ciclos repiten instrucciones.\n\nUna condicional SI evalúa una condición. Si se cumple, ejecuta un bloque; de lo contrario, puede ejecutar otro.\nEjemplo:\nSI nota >= 7 ENTONCES\n  Mostrar \"Aprobado\"\nSINO\n  Mostrar \"Debe reforzar\"\nFIN SI\n\nLos ciclos sirven para repetir tareas. Un ciclo PARA se usa cuando conocemos la cantidad de repeticiones. Un ciclo MIENTRAS repite mientras una condición sea verdadera.\n\nEjemplo: repetir tres veces el mensaje \"Hola\" usando un contador que avance de uno en uno.",
+          activity: "Crea un ejemplo de una decisión que pueda tomar un programa usando SI y otro ejemplo de una tarea que convenga repetir usando un ciclo."
+        }
+      };
+      const detail = lessonDetails[module.title];
       document.getElementById("lessonTitle").textContent = module.title || "Clase";
-      document.getElementById("lessonContent").textContent = module.content || "Contenido próximamente.";
+      document.getElementById("lessonContent").textContent = detail?.content || module.content || "Contenido próximamente.";
+      document.getElementById("lessonActivity").textContent = detail?.activity || "Lee el contenido y escribe en tu cuaderno tres ideas importantes que hayas aprendido.";
       document.getElementById("lessonStatus").textContent = "";
       document.getElementById("completeLesson").dataset.moduleId = module.id;
       lessonView.scrollIntoView({ behavior: "smooth", block: "start" });
