@@ -984,7 +984,7 @@
       const session = data?.session;
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) { loadCourses(); loadEvaluations(); }
+      if (session) { loadCourses(); loadEvaluations(); loadTeacherPanel(); }
     });
   </script>
 
