@@ -558,8 +558,26 @@
       document.getElementById("lessonTitle").textContent = module.title || "Clase";
       document.getElementById("lessonContent").textContent = detail?.content || module.content || "Contenido próximamente.";
       document.getElementById("lessonActivity").textContent = detail?.activity || "Lee el contenido y escribe en tu cuaderno tres ideas importantes que hayas aprendido.";
-      document.getElementById("lessonStatus").textContent = "";
-      document.getElementById("completeLesson").dataset.moduleId = module.id;
+      const completeButton = document.getElementById("completeLesson");
+      completeButton.dataset.moduleId = module.id;
+      completeButton.disabled = true;
+      document.getElementById("lessonStatus").textContent = "Consultando tu progreso...";
+      const { data: progress, error: progressError } = await campusSupabase
+        .from("lesson_progress")
+        .select("module_id")
+        .eq("module_id", module.id)
+        .maybeSingle();
+      if (progressError) {
+        document.getElementById("lessonStatus").textContent = "No se pudo consultar el progreso. Ejecuta la configuración de progreso en Supabase.";
+        completeButton.textContent = "Marcar clase como completada";
+      } else if (progress) {
+        document.getElementById("lessonStatus").textContent = "✓ Ya completaste esta clase.";
+        completeButton.textContent = "Clase completada";
+      } else {
+        document.getElementById("lessonStatus").textContent = "Cuando termines, marca esta clase como completada.";
+        completeButton.textContent = "Marcar clase como completada";
+      }
+      completeButton.disabled = false;
       lessonView.scrollIntoView({ behavior: "smooth", block: "start" });
     }
 
@@ -569,11 +587,32 @@
       document.getElementById("moduleMessage").hidden = false;
     });
 
-    document.getElementById("completeLesson").addEventListener("click", () => {
-      const moduleId = document.getElementById("completeLesson").dataset.moduleId;
-      const key = "campus_completed_" + moduleId;
-      localStorage.setItem(key, "true");
-      document.getElementById("lessonStatus").textContent = "¡Muy bien! Esta clase quedó marcada como completada en este navegador.";
+    document.getElementById("completeLesson").addEventListener("click", async () => {
+      const button = document.getElementById("completeLesson");
+      const moduleId = button.dataset.moduleId;
+      if (!moduleId) return;
+      button.disabled = true;
+      document.getElementById("lessonStatus").textContent = "Guardando tu progreso...";
+      const { data: userData, error: userError } = await campusSupabase.auth.getUser();
+      if (userError || !userData.user) {
+        document.getElementById("lessonStatus").textContent = "Tu sesión no está disponible. Inicia sesión nuevamente.";
+        button.disabled = false;
+        return;
+      }
+      const { error } = await campusSupabase
+        .from("lesson_progress")
+        .upsert(
+          { student_id: userData.user.id, module_id: moduleId },
+          { onConflict: "student_id,module_id" }
+        );
+      if (error) {
+        document.getElementById("lessonStatus").textContent = "No se pudo guardar: " + error.message;
+        button.disabled = false;
+        return;
+      }
+      document.getElementById("lessonStatus").textContent = "¡Muy bien! Tu clase quedó completada y guardada en tu cuenta.";
+      button.textContent = "Clase completada";
+      button.disabled = false;
     });
 
     document.getElementById("backToCourses").addEventListener("click", () => {
