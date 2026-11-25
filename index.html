@@ -275,10 +275,10 @@
       <span>S.I.</span>
     </div>
 
-    <nav>
+    <nav aria-label="Navegación principal">
       <a class="active" href="#inicio">⌂ Inicio</a>
       <a href="#cursos">▣ Mis cursos</a>
-      <a href="#evaluaciones">☑ Evaluaciones</a>
+      <a href="#evaluationPanel">☑ Evaluaciones</a>
       <a href="#tareas">▤ Tareas</a>
       <a href="#progreso">▥ Progreso</a>
       <a href="#certificados">✪ Certificados</a>
@@ -515,6 +515,38 @@
 
     const authMessage = document.getElementById("authMessage");
     const logoutButton = document.getElementById("logoutButton");
+
+    // Navegación del menú: desplaza a cada sección y marca el enlace activo.
+    document.querySelectorAll(".sidebar nav a").forEach(link => {
+      link.addEventListener("click", event => {
+        const target = document.querySelector(link.getAttribute("href"));
+        if (!target) return;
+        event.preventDefault();
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        document.querySelectorAll(".sidebar nav a").forEach(item => item.classList.remove("active"));
+        link.classList.add("active");
+      });
+    });
+
+    // Las tarjetas del espacio académico también llevan a su sección.
+    const quickLinks = [
+      [".cards .card:nth-child(1)", "#cursos"],
+      [".cards .card:nth-child(2)", "#evaluationPanel"],
+      [".cards .card:nth-child(3)", "#tareas"],
+      [".cards .card:nth-child(4)", "#progreso"]
+    ];
+    quickLinks.forEach(([selector, destination]) => {
+      const card = document.querySelector(selector);
+      if (!card) return;
+      card.style.cursor = "pointer";
+      card.setAttribute("role", "link");
+      card.setAttribute("tabindex", "0");
+      const go = () => document.querySelector(destination)?.scrollIntoView({ behavior: "smooth", block: "start" });
+      card.addEventListener("click", go);
+      card.addEventListener("keydown", event => {
+        if (event.key === "Enter" || event.key === " ") { event.preventDefault(); go(); }
+      });
+    });
 
     // Carga el catálogo desde la tabla courses protegida por RLS.
     async function loadCourses() {
