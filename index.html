@@ -424,6 +424,7 @@
             <option value="0">Opción 1</option><option value="1">Opción 2</option><option value="2">Opción 3</option><option value="3">Opción 4</option>
           </select>
           <button class="gold" type="submit">Publicar evaluación</button>
+          <p id="teacherEvaluationMessage" role="status" aria-live="polite" style="margin:10px 0 0;font-weight:600"></p>
         </form>
       </div>
       <div class="card" style="margin:14px 0">
@@ -800,31 +801,38 @@
       }
     });
 
-        document.getElementById("teacherEvaluationForm").addEventListener("submit", async event => {
+    document.getElementById("teacherEvaluationForm").addEventListener("submit", async event => {
       event.preventDefault();
       const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const message = document.getElementById("teacherEvaluationMessage");
       const v = Object.fromEntries(new FormData(form));
-      const { data: evaluation, error: evalError } = await campusSupabase.from("evaluations")
-        .insert({ course_id: v.course_id, title: v.title.trim(), description: v.description.trim(), is_published: true })
-        .select("id").single();
-      if (evalError) {
-        document.getElementById("teacherMessage").textContent = "No se pudo crear la evaluación: " + evalError.message;
-        return;
+      message.textContent = "Publicando evaluación...";
+      if (button) button.disabled = true;
+      try {
+        const { data: evaluation, error: evalError } = await campusSupabase.from("evaluations")
+          .insert({ course_id: v.course_id, title: v.title.trim(), description: (v.description || "").trim(), is_published: true })
+          .select("id").single();
+        if (evalError) throw new Error("No se pudo crear la evaluación: " + evalError.message);
+
+        const { data: question, error: questionError } = await campusSupabase.from("evaluation_questions")
+          .insert({ evaluation_id: evaluation.id, prompt: v.prompt.trim(),
+            options: [v.option0, v.option1, v.option2, v.option3], position: 1 })
+          .select("id").single();
+        if (questionError) throw new Error("La evaluación se creó, pero falló la pregunta: " + questionError.message);
+
+        const { error: keyError } = await campusSupabase.from("evaluation_answer_keys")
+          .insert({ question_id: question.id, correct_option: Number(v.correct) });
+        if (keyError) throw new Error("La pregunta se creó, pero no se pudo guardar la respuesta correcta: " + keyError.message);
+
+        message.textContent = "✅ Evaluación publicada correctamente.";
+        form.reset();
+        await loadEvaluations();
+      } catch (error) {
+        message.textContent = "❌ " + (error?.message || String(error));
+      } finally {
+        if (button) button.disabled = false;
       }
-      const { data: question, error: questionError } = await campusSupabase.from("evaluation_questions")
-        .insert({ evaluation_id: evaluation.id, prompt: v.prompt.trim(),
-          options: [v.option0, v.option1, v.option2, v.option3], position: 1 })
-        .select("id").single();
-      if (questionError) {
-        document.getElementById("teacherMessage").textContent = "La evaluación se creó, pero falló la pregunta: " + questionError.message;
-        return;
-      }
-      const { error: keyError } = await campusSupabase.from("evaluation_answer_keys")
-        .insert({ question_id: question.id, correct_option: Number(v.correct) });
-      document.getElementById("teacherMessage").textContent = keyError
-        ? "Pregunta creada, pero no se pudo guardar la respuesta correcta: " + keyError.message
-        : "Evaluación publicada correctamente.";
-      if (!keyError) { form.reset(); await loadEvaluations(); }
     });
 
     async function loadTeacherResults() {
