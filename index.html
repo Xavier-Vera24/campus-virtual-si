@@ -710,12 +710,26 @@
     document.getElementById("teacherCourseForm").addEventListener("submit", async event => {
       event.preventDefault();
       const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const message = document.getElementById("teacherMessage");
       const values = Object.fromEntries(new FormData(form));
-      const { error } = await campusSupabase.from("courses").insert({
-        title: values.title.trim(), description: values.description.trim()
-      });
-      document.getElementById("teacherMessage").textContent = error ? "No se pudo crear: " + error.message : "Asignatura creada correctamente.";
-      if (!error) { form.reset(); await loadCourses(); await loadTeacherPanel(); }
+      message.textContent = "Guardando asignatura...";
+      if (button) button.disabled = true;
+      try {
+        const { error } = await campusSupabase.from("courses").insert({
+          title: (values.title || "").trim(),
+          description: (values.description || "").trim()
+        });
+        if (error) throw error;
+        message.textContent = "Asignatura creada correctamente.";
+        form.reset();
+        await loadCourses();
+        await loadTeacherPanel();
+      } catch (error) {
+        message.textContent = "No se pudo crear la asignatura: " + (error?.message || String(error));
+      } finally {
+        if (button) button.disabled = false;
+      }
     });
 
     document.getElementById("teacherModuleForm").addEventListener("submit", async event => {
