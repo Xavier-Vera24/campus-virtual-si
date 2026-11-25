@@ -401,6 +401,7 @@
           <label>Contenido de la clase</label>
           <textarea name="content" rows="4" required style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px"></textarea>
           <button class="gold" type="submit">Crear módulo</button>
+          <p id="teacherModuleMessage" role="status" aria-live="polite" style="margin:10px 0 0;font-weight:600"></p>
         </form>
       </div>
       <div class="card" style="margin:14px 0">
@@ -767,19 +768,39 @@
 
     document.getElementById("teacherModuleForm").addEventListener("submit", async event => {
       event.preventDefault();
-      const values = Object.fromEntries(new FormData(event.currentTarget));
-      const { data: existing } = await campusSupabase.from("modules")
-        .select("position").eq("course_id", values.course_id).order("position", {ascending:false}).limit(1);
-      const position = existing?.length ? Number(existing[0].position || 0) + 1 : 1;
-      const { error } = await campusSupabase.from("modules").insert({
-        course_id: values.course_id, title: values.title.trim(),
-        content: values.content.trim(), position
-      });
-      document.getElementById("teacherMessage").textContent = error ? "No se pudo crear el módulo: " + error.message : "Módulo creado correctamente.";
-      if (!error) event.currentTarget.reset();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const message = document.getElementById("teacherModuleMessage");
+      const values = Object.fromEntries(new FormData(form));
+      if (!values.course_id) {
+        message.textContent = "❌ Primero crea o selecciona una asignatura.";
+        return;
+      }
+      message.textContent = "Guardando módulo...";
+      if (button) button.disabled = true;
+      try {
+        const { data: existing, error: positionError } = await campusSupabase.from("modules")
+          .select("position").eq("course_id", values.course_id)
+          .order("position", { ascending: false }).limit(1);
+        if (positionError) throw positionError;
+        const position = existing?.length ? Number(existing[0].position || 0) + 1 : 1;
+        const { error } = await campusSupabase.from("modules").insert({
+          course_id: values.course_id,
+          title: (values.title || "").trim(),
+          content: (values.content || "").trim(),
+          position
+        });
+        if (error) throw error;
+        message.textContent = "✅ Módulo creado correctamente.";
+        form.reset();
+      } catch (error) {
+        message.textContent = "❌ No se pudo crear el módulo: " + (error?.message || String(error));
+      } finally {
+        if (button) button.disabled = false;
+      }
     });
 
-    document.getElementById("teacherEvaluationForm").addEventListener("submit", async event => {
+        document.getElementById("teacherEvaluationForm").addEventListener("submit", async event => {
       event.preventDefault();
       const form = event.currentTarget;
       const v = Object.fromEntries(new FormData(form));
