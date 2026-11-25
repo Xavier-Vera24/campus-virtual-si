@@ -279,7 +279,7 @@
       <a class="active" href="#inicio">⌂ Inicio</a>
       <a href="#cursos">▣ Mis cursos</a>
       <a href="#evaluationPanel">☑ Evaluaciones</a>
-      <a href="#tareas">▤ Tareas</a>
+      <a href="#tasksPanel">▤ Tareas</a>
       <a href="#progreso">▥ Progreso</a>
       <a href="#certificados">✪ Certificados</a>
       <a href="#configuracion">⚙ Configuración</a>
@@ -346,7 +346,7 @@
         <p>Comprueba tus conocimientos.</p>
       </div>
 
-      <div class="card" id="tareas">
+      <div class="card" id="tareasInicio">
         <h3>📁 Tareas</h3>
         <p>Consulta tus actividades.</p>
       </div>
@@ -363,6 +363,25 @@
       <div class="card"><p>Cargando asignaturas...</p></div>
     </section>
     <p id="courseMessage" role="status" style="margin-top:12px"></p>
+
+    
+    <section class="card" id="tasksPanel" style="margin-top:24px">
+      <div class="module-top"><h2>📁 Tareas y actividades</h2><button type="button" id="refreshTasks">Actualizar</button></div>
+      <p style="margin:8px 0 14px">Consulta las actividades publicadas por tus profesores y entrega tus respuestas.</p>
+      <div id="studentTaskList" aria-live="polite"><p>Cargando tareas...</p></div>
+      <section id="taskSubmitPanel" hidden style="margin-top:18px">
+        <h3 id="taskSubmitTitle"></h3>
+        <p id="taskSubmitDescription" style="margin:8px 0"></p>
+        <form id="taskSubmissionForm">
+          <input type="hidden" name="task_id" id="submissionTaskId">
+          <label for="submissionContent">Tu respuesta</label>
+          <textarea id="submissionContent" name="content" rows="5" required maxlength="10000" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px"></textarea>
+          <button class="gold" type="submit">Entregar tarea</button>
+          <button type="button" id="cancelTaskSubmission">Cancelar</button>
+        </form>
+        <p id="taskSubmissionMessage" role="status" aria-live="polite" style="margin-top:10px"></p>
+      </section>
+    </section>
 
     <section class="card" id="evaluationPanel" style="margin-top:24px">
       <div class="module-top"><h2>📝 Evaluaciones disponibles</h2><button type="button" id="refreshEvaluations">Actualizar</button></div>
@@ -402,6 +421,21 @@
           <textarea name="content" rows="4" required style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px"></textarea>
           <button class="gold" type="submit">Crear módulo</button>
           <p id="teacherModuleMessage" role="status" aria-live="polite" style="margin:10px 0 0;font-weight:600"></p>
+        </form>
+      </div>
+      <div class="card" style="margin:14px 0">
+        <h3>Publicar tarea</h3>
+        <form id="teacherTaskForm">
+          <label>Asignatura</label>
+          <select name="course_id" id="teacherTaskCourse" required style="width:100%;padding:11px;margin:8px 0"></select>
+          <label>Título de la tarea</label>
+          <input name="title" required maxlength="150" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px">
+          <label>Instrucciones</label>
+          <textarea name="description" rows="4" required maxlength="10000" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px"></textarea>
+          <label>Fecha de entrega (opcional)</label>
+          <input name="due_date" type="date" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px">
+          <button class="gold" type="submit">Publicar tarea</button>
+          <p id="teacherTaskMessage" role="status" aria-live="polite" style="margin:10px 0 0;font-weight:600"></p>
         </form>
       </div>
       <div class="card" style="margin:14px 0">
@@ -534,7 +568,7 @@
     const quickLinks = [
       [".cards .card:nth-child(1)", "#cursos"],
       [".cards .card:nth-child(2)", "#evaluationPanel"],
-      [".cards .card:nth-child(3)", "#tareas"],
+      [".cards .card:nth-child(3)", "#tasksPanel"],
       [".cards .card:nth-child(4)", "#progreso"]
     ];
     quickLinks.forEach(([selector, destination]) => {
@@ -730,7 +764,7 @@
         document.getElementById("teacherMessage").textContent = "No se pudieron cargar las asignaturas: " + courseError.message;
         return;
       }
-      ["teacherModuleCourse", "teacherEvaluationCourse"].forEach(id => {
+      ["teacherModuleCourse", "teacherEvaluationCourse", "teacherTaskCourse"].forEach(id => {
         const select = document.getElementById(id);
         select.replaceChildren();
         (courses || []).forEach(course => {
@@ -853,6 +887,116 @@
       });
     }
     document.getElementById("refreshTeacherResults").addEventListener("click", loadTeacherResults);
+
+    // Tareas: publicación docente, consulta estudiantil y entrega de respuestas.
+    async function loadTasks() {
+      const target = document.getElementById("studentTaskList");
+      target.textContent = "Cargando tareas...";
+      const { data, error } = await campusSupabase.from("tasks")
+        .select("id, course_id, title, description, due_date")
+        .order("due_date", { ascending: true });
+      if (error) {
+        target.textContent = "No se pudieron cargar las tareas: " + error.message;
+        return;
+      }
+      if (!data?.length) {
+        target.textContent = "Todavía no hay tareas publicadas.";
+        return;
+      }
+      target.replaceChildren();
+      data.forEach(task => {
+        const card = document.createElement("article");
+        card.className = "card";
+        card.style.marginTop = "12px";
+        const title = document.createElement("h3");
+        title.textContent = task.title || "Tarea";
+        const description = document.createElement("p");
+        description.style.margin = "8px 0";
+        description.textContent = task.description || "Sin instrucciones adicionales.";
+        const due = document.createElement("p");
+        due.style.fontWeight = "bold";
+        due.textContent = task.due_date ? "Fecha de entrega: " + task.due_date : "Sin fecha límite indicada";
+        const submit = document.createElement("button");
+        submit.type = "button";
+        submit.className = "gold";
+        submit.style.marginTop = "10px";
+        submit.textContent = "Responder tarea";
+        submit.addEventListener("click", () => {
+          document.getElementById("submissionTaskId").value = task.id;
+          document.getElementById("taskSubmitTitle").textContent = task.title || "Tarea";
+          document.getElementById("taskSubmitDescription").textContent = task.description || "";
+          document.getElementById("submissionContent").value = "";
+          document.getElementById("taskSubmissionMessage").textContent = "";
+          document.getElementById("taskSubmitPanel").hidden = false;
+          document.getElementById("taskSubmitPanel").scrollIntoView({behavior:"smooth",block:"start"});
+        });
+        card.append(title, description, due, submit);
+        target.appendChild(card);
+      });
+    }
+    document.getElementById("refreshTasks").addEventListener("click", loadTasks);
+    document.getElementById("cancelTaskSubmission").addEventListener("click", () => {
+      document.getElementById("taskSubmitPanel").hidden = true;
+    });
+
+    document.getElementById("teacherTaskForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const message = document.getElementById("teacherTaskMessage");
+      const values = Object.fromEntries(new FormData(form));
+      message.textContent = "Publicando tarea...";
+      if (button) button.disabled = true;
+      try {
+        const { data: userData, error: userError } = await campusSupabase.auth.getUser();
+        if (userError || !userData.user) throw new Error(userError?.message || "Inicia sesión nuevamente.");
+        const payload = {
+          course_id: values.course_id,
+          title: values.title.trim(),
+          description: values.description.trim(),
+          due_date: values.due_date || null,
+          created_by: userData.user.id
+        };
+        const { error } = await campusSupabase.from("tasks").insert(payload);
+        if (error) throw error;
+        message.textContent = "✅ Tarea publicada correctamente.";
+        form.reset();
+        await loadTasks();
+      } catch (error) {
+        message.textContent = "❌ No se pudo publicar la tarea: " + (error?.message || String(error));
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+
+    document.getElementById("taskSubmissionForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const button = form.querySelector('button[type="submit"]');
+      const message = document.getElementById("taskSubmissionMessage");
+      const values = Object.fromEntries(new FormData(form));
+      message.textContent = "Entregando tarea...";
+      if (button) button.disabled = true;
+      try {
+        const { data: userData, error: userError } = await campusSupabase.auth.getUser();
+        if (userError || !userData.user) throw new Error(userError?.message || "Inicia sesión nuevamente.");
+        const { error } = await campusSupabase.from("submissions").insert({
+          task_id: values.task_id,
+          student_id: userData.user.id,
+          content: values.content.trim()
+        });
+        if (error) throw error;
+        message.textContent = "✅ Tu tarea fue entregada correctamente.";
+        form.reset();
+        document.getElementById("taskSubmitPanel").hidden = true;
+      } catch (error) {
+        message.textContent = "❌ No se pudo entregar la tarea: " + (error?.message || String(error));
+      } finally {
+        if (button) button.disabled = false;
+      }
+    });
+
+
 
 
     // Muestra los módulos de la asignatura seleccionada.
@@ -1053,7 +1197,7 @@
     campusSupabase.auth.onAuthStateChange((_event, session) => {
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) { loadCourses(); loadEvaluations(); setTimeout(() => loadTeacherPanel(), 0); }
+      if (session) { loadCourses(); loadEvaluations(); loadTasks(); setTimeout(() => loadTeacherPanel(), 0); }
     });
 
     campusSupabase.auth.getSession().then(({ data, error }) => {
@@ -1061,7 +1205,7 @@
       const session = data?.session;
       document.body.classList.toggle("authenticated", Boolean(session));
       logoutButton.hidden = !session;
-      if (session) { loadCourses(); loadEvaluations(); setTimeout(() => loadTeacherPanel(), 0); }
+      if (session) { loadCourses(); loadEvaluations(); loadTasks(); setTimeout(() => loadTeacherPanel(), 0); }
     });
   </script>
 
