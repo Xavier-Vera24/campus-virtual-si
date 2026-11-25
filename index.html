@@ -388,6 +388,7 @@
           <label>Descripción</label>
           <textarea name="description" rows="2" style="width:100%;padding:11px;margin:8px 0;border:1px solid #ccd3df;border-radius:8px"></textarea>
           <button class="gold" type="submit">Crear asignatura</button>
+          <p id="teacherCourseMessage" role="status" aria-live="polite" style="margin:10px 0 0;font-weight:600"></p>
         </form>
       </div>
       <div class="card" style="margin:14px 0">
@@ -711,7 +712,7 @@
       event.preventDefault();
       const form = event.currentTarget;
       const button = form.querySelector('button[type="submit"]');
-      const message = document.getElementById("teacherMessage");
+      const message = document.getElementById("teacherCourseMessage");
       const values = Object.fromEntries(new FormData(form));
       message.textContent = "Guardando asignatura...";
       if (button) button.disabled = true;
@@ -721,12 +722,12 @@
           description: (values.description || "").trim()
         });
         if (error) throw error;
-        message.textContent = "Asignatura creada correctamente.";
+        message.textContent = "✅ Asignatura creada correctamente.";
         form.reset();
         await loadCourses();
         await loadTeacherPanel();
       } catch (error) {
-        message.textContent = "No se pudo crear la asignatura: " + (error?.message || String(error));
+        message.textContent = "❌ No se pudo crear: " + (error?.message || String(error));
       } finally {
         if (button) button.disabled = false;
       }
