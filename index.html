@@ -982,7 +982,7 @@
         const { error } = await campusSupabase.from("submissions").insert({
           task_id: values.task_id,
           student_id: userData.user.id,
-          content: values.content.trim()
+          comentarios: values.content.trim()
         });
         if (error) throw error;
         message.textContent = "✅ Tu tarea fue entregada correctamente.";
