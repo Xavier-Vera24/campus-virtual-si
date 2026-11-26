@@ -954,8 +954,7 @@
           course_id: values.course_id,
           title: values.title.trim(),
           description: values.description.trim(),
-          due_date: values.due_date || null,
-          created_by: userData.user.id
+          due_date: values.due_date || null
         };
         const { error } = await campusSupabase.from("tasks").insert(payload);
         if (error) throw error;
