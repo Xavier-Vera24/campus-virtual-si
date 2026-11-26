@@ -439,6 +439,14 @@
         </form>
       </div>
       <div class="card" style="margin:14px 0">
+        <div class="module-top">
+          <h3>📥 Revisar tareas entregadas</h3>
+          <button type="button" id="refreshSubmissions">Actualizar</button>
+        </div>
+        <p>Consulta las respuestas de los estudiantes, coloca una calificación sobre 10 y escribe observaciones.</p>
+        <div id="teacherSubmissionsList" aria-live="polite">Pulsa «Actualizar» para cargar las entregas.</div>
+      </div>
+      <div class="card" style="margin:14px 0">
         <h3>Crear evaluación con una pregunta</h3>
         <form id="teacherEvaluationForm">
           <label>Asignatura</label>
@@ -938,6 +946,78 @@
     document.getElementById("cancelTaskSubmission").addEventListener("click", () => {
       document.getElementById("taskSubmitPanel").hidden = true;
     });
+
+    async function loadTeacherSubmissions() {
+      const target = document.getElementById("teacherSubmissionsList");
+      target.textContent = "Cargando entregas...";
+      try {
+        const { data: submissions, error } = await campusSupabase
+          .from("submissions")
+          .select("id, task_id, student_id, comments, grade, teacher_feedback")
+          .order("id", { ascending: false });
+        if (error) throw error;
+        if (!submissions?.length) {
+          target.textContent = "Todavía no hay tareas entregadas.";
+          return;
+        }
+        const taskIds = [...new Set(submissions.map(item => item.task_id))];
+        const { data: tasks, error: tasksError } = await campusSupabase
+          .from("tasks").select("id, title").in("id", taskIds);
+        if (tasksError) throw tasksError;
+        const taskNames = Object.fromEntries((tasks || []).map(task => [task.id, task.title]));
+        target.replaceChildren();
+        submissions.forEach(item => {
+          const card = document.createElement("article");
+          card.className = "card";
+          card.style.marginTop = "12px";
+          const heading = document.createElement("h4");
+          heading.textContent = taskNames[item.task_id] || "Tarea";
+          const student = document.createElement("p");
+          student.textContent = "Estudiante (ID): " + item.student_id;
+          const answer = document.createElement("p");
+          answer.style.whiteSpace = "pre-wrap";
+          answer.textContent = "Respuesta: " + (item.comments || "Sin respuesta escrita");
+          const gradeLabel = document.createElement("label");
+          gradeLabel.textContent = "Calificación (sobre 10)";
+          const grade = document.createElement("input");
+          grade.type = "number"; grade.min = "0"; grade.max = "10"; grade.step = "0.1";
+          grade.value = item.grade ?? "";
+          grade.placeholder = "Ej. 9.5";
+          grade.style.cssText = "display:block;width:100%;padding:10px;margin:6px 0 12px";
+          const feedbackLabel = document.createElement("label");
+          feedbackLabel.textContent = "Observaciones del profesor";
+          const feedback = document.createElement("textarea");
+          feedback.rows = 3; feedback.maxLength = 2000;
+          feedback.value = item.teacher_feedback || "";
+          feedback.placeholder = "Escribe una observación para el estudiante";
+          feedback.style.cssText = "display:block;width:100%;padding:10px;margin:6px 0 12px";
+          const save = document.createElement("button");
+          save.type = "button"; save.className = "gold"; save.textContent = "Guardar revisión";
+          const status = document.createElement("p");
+          status.setAttribute("role", "status");
+          save.addEventListener("click", async () => {
+            if (grade.value === "" || Number(grade.value) < 0 || Number(grade.value) > 10) {
+              status.textContent = "Ingresa una nota entre 0 y 10."; return;
+            }
+            save.disabled = true; status.textContent = "Guardando...";
+            try {
+              const { error: updateError } = await campusSupabase.from("submissions")
+                .update({ grade: Number(grade.value), teacher_feedback: feedback.value.trim() })
+                .eq("id", item.id);
+              if (updateError) throw updateError;
+              status.textContent = "✅ Calificación y observaciones guardadas.";
+            } catch (err) {
+              status.textContent = "❌ No se pudo guardar: " + (err?.message || String(err));
+            } finally { save.disabled = false; }
+          });
+          card.append(heading, student, answer, gradeLabel, grade, feedbackLabel, feedback, save, status);
+          target.appendChild(card);
+        });
+      } catch (error) {
+        target.textContent = "No se pudieron cargar las entregas: " + (error?.message || String(error));
+      }
+    }
+    document.getElementById("refreshSubmissions").addEventListener("click", loadTeacherSubmissions);
 
     document.getElementById("teacherTaskForm").addEventListener("submit", async event => {
       event.preventDefault();
