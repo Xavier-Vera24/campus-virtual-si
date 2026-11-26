@@ -372,6 +372,7 @@
       <section id="taskSubmitPanel" hidden style="margin-top:18px">
         <h3 id="taskSubmitTitle"></h3>
         <p id="taskSubmitDescription" style="margin:8px 0"></p>
+        <p id="taskSubmissionMessage" role="status" aria-live="polite" style="margin:10px 0;font-weight:700" hidden></p>
         <form id="taskSubmissionForm">
           <input type="hidden" name="task_id" id="submissionTaskId">
           <label for="submissionContent">Tu respuesta</label>
@@ -379,7 +380,6 @@
           <button class="gold" type="submit">Entregar tarea</button>
           <button type="button" id="cancelTaskSubmission">Cancelar</button>
         </form>
-        <p id="taskSubmissionMessage" role="status" aria-live="polite" style="margin-top:10px"></p>
       </section>
     </section>
 
@@ -988,8 +988,10 @@
         message.textContent = "✅ ¡Tarea enviada correctamente! Tu respuesta quedó registrada.";
         message.style.color = "#16803c";
         document.getElementById("submissionContent").value = "";
-        message.scrollIntoView({behavior:"smooth",block:"center"});
+        message.hidden = false;
       } catch (error) {
+        message.hidden = false;
+        message.style.color = "#b42318";
         message.textContent = "❌ No se pudo entregar la tarea: " + (error?.message || String(error));
       } finally {
         if (button) button.disabled = false;
