@@ -985,9 +985,10 @@
           comments: values.content.trim()
         });
         if (error) throw error;
-        message.textContent = "✅ Tu tarea fue entregada correctamente.";
-        form.reset();
-        document.getElementById("taskSubmitPanel").hidden = true;
+        message.textContent = "✅ ¡Tarea enviada correctamente! Tu respuesta quedó registrada.";
+        message.style.color = "#16803c";
+        document.getElementById("submissionContent").value = "";
+        message.scrollIntoView({behavior:"smooth",block:"center"});
       } catch (error) {
         message.textContent = "❌ No se pudo entregar la tarea: " + (error?.message || String(error));
       } finally {
